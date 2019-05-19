@@ -3,9 +3,8 @@
 import time
 from prometheus_client import start_http_server
 from prometheus_client.core import GaugeMetricFamily, REGISTRY
-import argparse
-import yaml
 import logging
+import os
 from azure.storage.blob import BlockBlobService
 
 DEFAULT_PORT=9358
@@ -19,9 +18,9 @@ class AzureBlobStorageCollector(object):
     self._config = config
 
   def collect(self):
-    azure_blob_storage_account_name = self._config['azure_blob_storage_account_name']
-    azure_blob_storage_account_key = self._config['azure_blob_storage_account_key']
-    azure_blob_storage_containers = self._config['azure_blob_storage_containers']
+    azure_blob_storage_account_name = os.environ['ACCOUNT_NAME']
+    azure_blob_storage_account_key = os.environ['ACCOUNT_KEY']
+    azure_blob_storage_containers = os.environ['BUCKET_NAME']
 
     blob_service = BlockBlobService(account_name=azure_blob_storage_account_name, account_key=azure_blob_storage_account_key)
     azure_blob_latest_file_timestamp_gauge = GaugeMetricFamily('azure_blob_latest_file_timestamp', 'Last modified timestamp(milliseconds) for latest file in container', labels=['container'])
@@ -51,14 +50,9 @@ class AzureBlobStorageCollector(object):
 
 
 if __name__ == "__main__":
-  parser = argparse.ArgumentParser(description='Expose metrics for azure blob storage')
-  parser.add_argument('config_file_path', help='Path of the config file')
-  args = parser.parse_args()
-  with open(args.config_file_path) as config_file:
-    config = yaml.load(config_file)
-    log_level = config.get('log_level', DEFAULT_LOG_LEVEL)
+    log_level = os.environ['LOG_LEVEL']
     logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.getLevelName(log_level.upper()))
-    exporter_port = config.get('exporter_port', DEFAULT_PORT)
+    exporter_port = os.environ['PORT']
     logging.debug("Config %s", config)
     logging.info('Starting server on port %s', exporter_port)
     start_http_server(exporter_port)
